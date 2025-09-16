@@ -1,0 +1,1904 @@
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\tu.bat 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+@echo off
+setlocal enabledelayedexpansion
+
+:: Set the output file name
+set "outputFile=combined_content.txt"
+
+:: Clear the output file if it exists
+if exist "%outputFile%" del "%outputFile%"
+
+:: Get the current directory
+set "currentDir=%cd%"
+
+echo Starting to combine all file contents...
+echo Output file: %outputFile%
+echo.
+
+:: Initialize counter
+set /a fileCount=0
+
+:: Loop through all files recursively
+for /r %%F in (*) do (
+    :: Skip the output file itself to avoid infinite loop
+    if /i not "%%~nxF"=="%outputFile%" (
+        set /a fileCount+=1
+        
+        echo Processing: %%F
+        
+        :: Add file header to output
+        echo. >> "%outputFile%"
+        echo ================================== >> "%outputFile%"
+        echo FILE: %%F >> "%outputFile%"
+        echo DATE: %date% %time% >> "%outputFile%"
+        echo ================================== >> "%outputFile%"
+        echo. >> "%outputFile%"
+        
+        :: Try to append file content, handle errors gracefully
+        type "%%F" >> "%outputFile%" 2>nul || (
+            echo [ERROR: Could not read file - may be binary or access denied] >> "%outputFile%"
+        )
+        
+        :: Add separator
+        echo. >> "%outputFile%"
+        echo. >> "%outputFile%"
+    )
+)
+
+echo.
+echo Completed! Processed !fileCount! files.
+echo All content has been combined into: %outputFile%
+echo.
+pause 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\ConsoleDemo\ConsoleDemo.csproj 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Entities\Entities.csproj" />
+    <ProjectReference Include="..\RepositoryContracts\RepositoryContracts.csproj" />
+    <ProjectReference Include="..\InMemoryRepositories\InMemoryRepositories.csproj" />
+  </ItemGroup>
+
+</Project>
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\ConsoleDemo\Program.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿using ForumMini.Entities;
+using ForumMini.InMemoryRepositories;
+
+Console.WriteLine("ForumMini Demo - Assignment 1: Entities & Repositories");
+Console.WriteLine("===================================================\n");
+
+// Create repository instances
+var userRepo = new UserInMemoryRepository();
+var postRepo = new PostInMemoryRepository();
+var commentRepo = new CommentInMemoryRepository();
+
+Console.WriteLine("SEED DATA OVERVIEW");
+Console.WriteLine("==================");
+
+// Display all users
+Console.WriteLine("\nUSERS:");
+var users = userRepo.GetMany().ToList();
+foreach (var user in users)
+{
+    Console.WriteLine($"  ID: {user.Id}, Username: {user.Username}");
+}
+
+// Display all posts
+Console.WriteLine("\nPOSTS:");
+var posts = postRepo.GetMany().ToList();
+foreach (var post in posts)
+{
+    var author = await userRepo.GetSingleAsync(post.UserId);
+    Console.WriteLine($"  ID: {post.Id}, Title: '{post.Title}' by {author.Username}");
+    Console.WriteLine($"    Content: {post.Body}");
+}
+
+// Display all comments
+Console.WriteLine("\nCOMMENTS:");
+var comments = commentRepo.GetMany().ToList();
+foreach (var comment in comments)
+{
+    var author = await userRepo.GetSingleAsync(comment.UserId);
+    var post = await postRepo.GetSingleAsync(comment.PostId);
+    Console.WriteLine($"  ID: {comment.Id}, '{comment.Body}' by {author.Username} on post '{post.Title}'");
+}
+
+Console.WriteLine("\n\nCRUD OPERATIONS DEMO");
+Console.WriteLine("====================");
+
+// Create a new user
+Console.WriteLine("\nAdding a new user...");
+var newUser = new User { Username = "johndoe", Password = "secret123" };
+newUser = await userRepo.AddAsync(newUser);
+Console.WriteLine($"Created user: {newUser.Username} (ID: {newUser.Id})");
+
+// Create a new post by the new user
+Console.WriteLine("\nAdding a new post...");
+var newPost = new Post { Title = "My First Post!", Body = "Hello, this is my first post on the forum!", UserId = newUser.Id };
+newPost = await postRepo.AddAsync(newPost);
+Console.WriteLine($"Created post: '{newPost.Title}' (ID: {newPost.Id})");
+
+// Add a comment to the new post
+Console.WriteLine("\nAdding a comment...");
+var newComment = new Comment { Body = "Welcome to the forum!", UserId = 1, PostId = newPost.Id }; // Comment by alice
+newComment = await commentRepo.AddAsync(newComment);
+Console.WriteLine($"Created comment: '{newComment.Body}' (ID: {newComment.Id})");
+
+// Update the post
+Console.WriteLine("\nUpdating the post...");
+newPost.Body = "Hello, this is my first post on the forum! (Updated)";
+await postRepo.UpdateAsync(newPost);
+Console.WriteLine("Updated post content");
+
+// Update the comment
+Console.WriteLine("\nUpdating the comment...");
+newComment.Body = "Welcome to the forum! Hope you enjoy your stay!";
+await commentRepo.UpdateAsync(newComment);
+Console.WriteLine("Updated comment");
+
+// Delete the comment
+Console.WriteLine("\nDeleting the comment...");
+await commentRepo.DeleteAsync(newComment.Id);
+Console.WriteLine($"Deleted comment (ID: {newComment.Id})");
+
+// Demonstrate error handling
+Console.WriteLine("\nERROR HANDLING DEMO");
+Console.WriteLine("===================");
+try
+{
+    await userRepo.GetSingleAsync(999);
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Caught expected error: {ex.Message}");
+}
+
+try
+{
+    await userRepo.DeleteAsync(999);
+}
+catch (InvalidOperationException ex)
+{
+    Console.WriteLine($"Caught expected error: {ex.Message}");
+}
+
+Console.WriteLine("\n\nDemo completed successfully!");
+Console.WriteLine("You can now build upon this foundation for future assignments.");
+Console.WriteLine("Next steps: CLI interface, Web API, or EF Core integration.");
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\Comment.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+namespace ForumMini.Entities;
+
+public class Comment
+{
+    public int Id { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public int UserId { get; set; }
+    public int PostId { get; set; }
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\Entities.csproj 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ForumMini.Entities</RootNamespace>
+  </PropertyGroup>
+
+</Project>
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\Post.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+namespace ForumMini.Entities;
+
+public class Post
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public int UserId { get; set; }
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\User.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+namespace ForumMini.Entities;
+
+public class User
+{
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Entities.csproj.nuget.dgspec.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "projectName": "Entities",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Entities.csproj.nuget.g.props 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\bypas\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.14.0</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="C:\Users\bypas\.nuget\packages\" />
+    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
+  </ItemGroup>
+</Project> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Entities.csproj.nuget.g.targets 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" /> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\project.assets.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {}
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {
+    "net8.0": []
+  },
+  "packageFolders": {
+    "C:\\Users\\bypas\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+      "projectName": "Entities",
+      "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+      "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\project.nuget.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 2,
+  "dgSpecHash": "Fu4fPv3MWwU=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+  "expectedPackageFiles": [],
+  "logs": []
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <autogenerated />
+using System;
+using System.Reflection;
+[assembly: global::System.Runtime.Versioning.TargetFrameworkAttribute(".NETCoreApp,Version=v8.0", FrameworkDisplayName = ".NET 8.0")]
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\Entities.AssemblyInfo.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+//------------------------------------------------------------------------------
+// <auto-generated>
+//     This code was generated by a tool.
+//     Runtime Version:4.0.30319.42000
+//
+//     Changes to this file may cause incorrect behavior and will be lost if
+//     the code is regenerated.
+// </auto-generated>
+//------------------------------------------------------------------------------
+
+using System;
+using System.Reflection;
+
+[assembly: System.Reflection.AssemblyCompanyAttribute("Entities")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyProductAttribute("Entities")]
+[assembly: System.Reflection.AssemblyTitleAttribute("Entities")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
+
+// Generated by the MSBuild WriteCodeFragment class.
+
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\Entities.AssemblyInfoInputs.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+a3a8369c032a24a008e06457ab4b823c0df07879c25396fb2e1bfebdef71c348
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\Entities.assets.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+PKGA   Év©ébÈ[€> ®	0¸EN°Ò¶Dó+ÛRW>=@à                                              C:\Users\bypas\.nuget\packages\    GC:\Program Files %28x86%29\Microsoft Visual Studio\Shared\NuGetPackages                                 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\Entities.GeneratedMSBuildEditorConfig.editorconfig 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ForumMini.Entities
+build_property.ProjectDir = C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\Entities\obj\Debug\net8.0\Entities.GlobalUsings.g.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <auto-generated/>
+global using global::System;
+global using global::System.Collections.Generic;
+global using global::System.IO;
+global using global::System.Linq;
+global using global::System.Net.Http;
+global using global::System.Threading;
+global using global::System.Threading.Tasks;
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\CommentInMemoryRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using ForumMini.Entities;
+using ForumMini.RepositoryContracts;
+
+namespace ForumMini.InMemoryRepositories;
+
+/// <summary>
+/// In-memory implementation of ICommentRepository
+/// </summary>
+public class CommentInMemoryRepository : ICommentRepository
+{
+    private readonly List<Comment> _comments = new();
+
+    public CommentInMemoryRepository()
+    {
+        // Seed data
+        _comments.Add(new Comment { Id = 1, Body = "Great first post!", UserId = 2, PostId = 1 });
+        _comments.Add(new Comment { Id = 2, Body = "I agree completely.", UserId = 3, PostId = 1 });
+        _comments.Add(new Comment { Id = 3, Body = "Thanks for sharing.", UserId = 1, PostId = 2 });
+        _comments.Add(new Comment { Id = 4, Body = "Interesting perspective.", UserId = 2, PostId = 3 });
+    }
+
+    public Task<Comment> AddAsync(Comment comment)
+    {
+        comment.Id = _comments.Any()
+            ? _comments.Max(c => c.Id) + 1
+            : 1;
+        _comments.Add(comment);
+        return Task.FromResult(comment);
+    }
+
+    public Task UpdateAsync(Comment comment)
+    {
+        Comment? existingComment = _comments.SingleOrDefault(c => c.Id == comment.Id);
+        if (existingComment is null)
+        {
+            throw new InvalidOperationException($"Comment with ID '{comment.Id}' not found");
+        }
+
+        _comments.Remove(existingComment);
+        _comments.Add(comment);
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(int id)
+    {
+        Comment? commentToRemove = _comments.SingleOrDefault(c => c.Id == id);
+        if (commentToRemove is null)
+        {
+            throw new InvalidOperationException($"Comment with ID '{id}' not found");
+        }
+
+        _comments.Remove(commentToRemove);
+        return Task.CompletedTask;
+    }
+
+    public Task<Comment> GetSingleAsync(int id)
+    {
+        Comment? comment = _comments.SingleOrDefault(c => c.Id == id);
+        if (comment is null)
+        {
+            throw new InvalidOperationException($"Comment with ID '{id}' not found");
+        }
+        return Task.FromResult(comment);
+    }
+
+    public IQueryable<Comment> GetMany()
+    {
+        return _comments.AsQueryable();
+    }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\InMemoryRepositories.csproj 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ForumMini.InMemoryRepositories</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Entities\Entities.csproj" />
+    <ProjectReference Include="..\RepositoryContracts\RepositoryContracts.csproj" />
+  </ItemGroup>
+
+</Project>
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\PostInMemoryRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using ForumMini.Entities;
+using ForumMini.RepositoryContracts;
+
+namespace ForumMini.InMemoryRepositories;
+
+/// <summary>
+/// In-memory implementation of IPostRepository
+/// </summary>
+public class PostInMemoryRepository : IPostRepository
+{
+    private readonly List<Post> _posts = new();
+
+    public PostInMemoryRepository()
+    {
+        // Seed data
+        _posts.Add(new Post { Id = 1, Title = "Welcome to the forum!", Body = "This is our first post.", UserId = 1 });
+        _posts.Add(new Post { Id = 2, Title = "Second post", Body = "Just testing things out.", UserId = 2 });
+        _posts.Add(new Post { Id = 3, Title = "Another post", Body = "Content is king.", UserId = 1 });
+    }
+
+    public Task<Post> AddAsync(Post post)
+    {
+        post.Id = _posts.Any()
+            ? _posts.Max(p => p.Id) + 1
+            : 1;
+        _posts.Add(post);
+        return Task.FromResult(post);
+    }
+
+    public Task UpdateAsync(Post post)
+    {
+        Post? existingPost = _posts.SingleOrDefault(p => p.Id == post.Id);
+        if (existingPost is null)
+        {
+            throw new InvalidOperationException($"Post with ID '{post.Id}' not found");
+        }
+
+        _posts.Remove(existingPost);
+        _posts.Add(post);
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(int id)
+    {
+        Post? postToRemove = _posts.SingleOrDefault(p => p.Id == id);
+        if (postToRemove is null)
+        {
+            throw new InvalidOperationException($"Post with ID '{id}' not found");
+        }
+
+        _posts.Remove(postToRemove);
+        return Task.CompletedTask;
+    }
+
+    public Task<Post> GetSingleAsync(int id)
+    {
+        Post? post = _posts.SingleOrDefault(p => p.Id == id);
+        if (post is null)
+        {
+            throw new InvalidOperationException($"Post with ID '{id}' not found");
+        }
+        return Task.FromResult(post);
+    }
+
+    public IQueryable<Post> GetMany()
+    {
+        return _posts.AsQueryable();
+    }
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\UserInMemoryRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using ForumMini.Entities;
+using ForumMini.RepositoryContracts;
+
+namespace ForumMini.InMemoryRepositories;
+
+/// <summary>
+/// In-memory implementation of IUserRepository
+/// </summary>
+public class UserInMemoryRepository : IUserRepository
+{
+    private readonly List<User> _users = new();
+
+    public UserInMemoryRepository()
+    {
+        // Seed data
+        _users.Add(new User { Id = 1, Username = "alice", Password = "password123" });
+        _users.Add(new User { Id = 2, Username = "bob", Password = "password123" });
+        _users.Add(new User { Id = 3, Username = "charlie", Password = "password123" });
+    }
+
+    public Task<User> AddAsync(User user)
+    {
+        user.Id = _users.Any()
+            ? _users.Max(u => u.Id) + 1
+            : 1;
+        _users.Add(user);
+        return Task.FromResult(user);
+    }
+
+    public Task UpdateAsync(User user)
+    {
+        User? existingUser = _users.SingleOrDefault(u => u.Id == user.Id);
+        if (existingUser is null)
+        {
+            throw new InvalidOperationException($"User with ID '{user.Id}' not found");
+        }
+
+        _users.Remove(existingUser);
+        _users.Add(user);
+
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(int id)
+    {
+        User? userToRemove = _users.SingleOrDefault(u => u.Id == id);
+        if (userToRemove is null)
+        {
+            throw new InvalidOperationException($"User with ID '{id}' not found");
+        }
+
+        _users.Remove(userToRemove);
+        return Task.CompletedTask;
+    }
+
+    public Task<User> GetSingleAsync(int id)
+    {
+        User? user = _users.SingleOrDefault(u => u.Id == id);
+        if (user is null)
+        {
+            throw new InvalidOperationException($"User with ID '{id}' not found");
+        }
+        return Task.FromResult(user);
+    }
+
+    public IQueryable<User> GetMany()
+    {
+        return _users.AsQueryable();
+    }
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\InMemoryRepositories.csproj.nuget.dgspec.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "projectName": "Entities",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj",
+        "projectName": "InMemoryRepositories",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+                "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj"
+              },
+              "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj": {
+                "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+        "projectName": "RepositoryContracts",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+                "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\InMemoryRepositories.csproj.nuget.g.props 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\bypas\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.14.0</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="C:\Users\bypas\.nuget\packages\" />
+    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
+  </ItemGroup>
+</Project> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\InMemoryRepositories.csproj.nuget.g.targets 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" /> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\project.assets.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "Entities/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Entities.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Entities.dll": {}
+        }
+      },
+      "RepositoryContracts/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Entities": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/RepositoryContracts.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/RepositoryContracts.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Entities/1.0.0": {
+      "type": "project",
+      "path": "../Entities/Entities.csproj",
+      "msbuildProject": "../Entities/Entities.csproj"
+    },
+    "RepositoryContracts/1.0.0": {
+      "type": "project",
+      "path": "../RepositoryContracts/RepositoryContracts.csproj",
+      "msbuildProject": "../RepositoryContracts/RepositoryContracts.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "Entities >= 1.0.0",
+      "RepositoryContracts >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\bypas\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj",
+      "projectName": "InMemoryRepositories",
+      "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj",
+      "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+              "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj"
+            },
+            "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj": {
+              "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\project.nuget.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 2,
+  "dgSpecHash": "GWcD60OOL+E=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\InMemoryRepositories\\InMemoryRepositories.csproj",
+  "expectedPackageFiles": [],
+  "logs": []
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <autogenerated />
+using System;
+using System.Reflection;
+[assembly: global::System.Runtime.Versioning.TargetFrameworkAttribute(".NETCoreApp,Version=v8.0", FrameworkDisplayName = ".NET 8.0")]
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\InMemoryRepositories.AssemblyInfo.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+//------------------------------------------------------------------------------
+// <auto-generated>
+//     This code was generated by a tool.
+//     Runtime Version:4.0.30319.42000
+//
+//     Changes to this file may cause incorrect behavior and will be lost if
+//     the code is regenerated.
+// </auto-generated>
+//------------------------------------------------------------------------------
+
+using System;
+using System.Reflection;
+
+[assembly: System.Reflection.AssemblyCompanyAttribute("InMemoryRepositories")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyProductAttribute("InMemoryRepositories")]
+[assembly: System.Reflection.AssemblyTitleAttribute("InMemoryRepositories")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
+
+// Generated by the MSBuild WriteCodeFragment class.
+
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\InMemoryRepositories.AssemblyInfoInputs.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+b040b9b84af3f859a4f7bbd958d5cd04862fea8a5de7d5263a7f8edf5b0ccb98
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\InMemoryRepositories.assets.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+PKGA   ..®×”o<vß·¨y(ê+±Ø®Q¥#/ƒ«×mÕà                                              C:\Users\bypas\.nuget\packages\    GC:\Program Files %28x86%29\Microsoft Visual Studio\Shared\NuGetPackages                                 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\InMemoryRepositories.GeneratedMSBuildEditorConfig.editorconfig 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ForumMini.InMemoryRepositories
+build_property.ProjectDir = C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\InMemoryRepositories\obj\Debug\net8.0\InMemoryRepositories.GlobalUsings.g.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <auto-generated/>
+global using global::System;
+global using global::System.Collections.Generic;
+global using global::System.IO;
+global using global::System.Linq;
+global using global::System.Net.Http;
+global using global::System.Threading;
+global using global::System.Threading.Tasks;
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\ICommentRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using System.Linq;
+using ForumMini.Entities;
+
+namespace ForumMini.RepositoryContracts;
+
+/// <summary>
+/// Repository interface for Comment entities
+/// </summary>
+public interface ICommentRepository
+{
+    /// <summary>
+    /// Adds a new comment asynchronously
+    /// </summary>
+    /// <param name="comment">The comment to add</param>
+    /// <returns>The added comment with assigned ID</returns>
+    Task<Comment> AddAsync(Comment comment);
+
+    /// <summary>
+    /// Updates an existing comment asynchronously
+    /// </summary>
+    /// <param name="comment">The comment to update</param>
+    Task UpdateAsync(Comment comment);
+
+    /// <summary>
+    /// Deletes a comment by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the comment to delete</param>
+    Task DeleteAsync(int id);
+
+    /// <summary>
+    /// Gets a single comment by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the comment to retrieve</param>
+    /// <returns>The comment with the specified ID</returns>
+    Task<Comment> GetSingleAsync(int id);
+
+    /// <summary>
+    /// Gets all comments as a queryable collection
+    /// </summary>
+    /// <returns>An IQueryable of all comments</returns>
+    IQueryable<Comment> GetMany();
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\IPostRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using System.Linq;
+using ForumMini.Entities;
+
+namespace ForumMini.RepositoryContracts;
+
+/// <summary>
+/// Repository interface for Post entities
+/// </summary>
+public interface IPostRepository
+{
+    /// <summary>
+    /// Adds a new post asynchronously
+    /// </summary>
+    /// <param name="post">The post to add</param>
+    /// <returns>The added post with assigned ID</returns>
+    Task<Post> AddAsync(Post post);
+
+    /// <summary>
+    /// Updates an existing post asynchronously
+    /// </summary>
+    /// <param name="post">The post to update</param>
+    Task UpdateAsync(Post post);
+
+    /// <summary>
+    /// Deletes a post by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the post to delete</param>
+    Task DeleteAsync(int id);
+
+    /// <summary>
+    /// Gets a single post by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the post to retrieve</param>
+    /// <returns>The post with the specified ID</returns>
+    Task<Post> GetSingleAsync(int id);
+
+    /// <summary>
+    /// Gets all posts as a queryable collection
+    /// </summary>
+    /// <returns>An IQueryable of all posts</returns>
+    IQueryable<Post> GetMany();
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\IUserRepository.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+using System.Linq;
+using ForumMini.Entities;
+
+namespace ForumMini.RepositoryContracts;
+
+/// <summary>
+/// Repository interface for User entities
+/// </summary>
+public interface IUserRepository
+{
+    /// <summary>
+    /// Adds a new user asynchronously
+    /// </summary>
+    /// <param name="user">The user to add</param>
+    /// <returns>The added user with assigned ID</returns>
+    Task<User> AddAsync(User user);
+
+    /// <summary>
+    /// Updates an existing user asynchronously
+    /// </summary>
+    /// <param name="user">The user to update</param>
+    Task UpdateAsync(User user);
+
+    /// <summary>
+    /// Deletes a user by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the user to delete</param>
+    Task DeleteAsync(int id);
+
+    /// <summary>
+    /// Gets a single user by ID asynchronously
+    /// </summary>
+    /// <param name="id">The ID of the user to retrieve</param>
+    /// <returns>The user with the specified ID</returns>
+    Task<User> GetSingleAsync(int id);
+
+    /// <summary>
+    /// Gets all users as a queryable collection
+    /// </summary>
+    /// <returns>An IQueryable of all users</returns>
+    IQueryable<User> GetMany();
+}
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\RepositoryContracts.csproj 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ForumMini.RepositoryContracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Entities\Entities.csproj" />
+  </ItemGroup>
+
+</Project>
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\project.assets.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 3,
+  "targets": {
+    "net8.0": {
+      "Entities/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Entities.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Entities.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Entities/1.0.0": {
+      "type": "project",
+      "path": "../Entities/Entities.csproj",
+      "msbuildProject": "../Entities/Entities.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net8.0": [
+      "Entities >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\bypas\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+      "projectName": "RepositoryContracts",
+      "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+      "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "projectReferences": {
+            "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+              "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.300"
+    },
+    "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\project.nuget.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "version": 2,
+  "dgSpecHash": "EfM/165JYHg=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+  "expectedPackageFiles": [],
+  "logs": []
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\RepositoryContracts.csproj.nuget.dgspec.json 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "projectName": "Entities",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+        "projectName": "RepositoryContracts",
+        "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\RepositoryContracts.csproj",
+        "packagesPath": "C:\\Users\\bypas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\RepositoryContracts\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\bypas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj": {
+                "projectPath": "C:\\Users\\bypas\\Desktop\\DNP_assignment-master\\DNP_assignment-master\\Server\\Entities\\Entities.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+} 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\RepositoryContracts.csproj.nuget.g.props 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\bypas\.nuget\packages\;C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.14.0</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="C:\Users\bypas\.nuget\packages\" />
+    <SourceRoot Include="C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages\" />
+  </ItemGroup>
+</Project> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\RepositoryContracts.csproj.nuget.g.targets 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+ï»¿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" /> 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <autogenerated />
+using System;
+using System.Reflection;
+[assembly: global::System.Runtime.Versioning.TargetFrameworkAttribute(".NETCoreApp,Version=v8.0", FrameworkDisplayName = ".NET 8.0")]
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\RepositoryContracts.AssemblyInfo.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+//------------------------------------------------------------------------------
+// <auto-generated>
+//     This code was generated by a tool.
+//     Runtime Version:4.0.30319.42000
+//
+//     Changes to this file may cause incorrect behavior and will be lost if
+//     the code is regenerated.
+// </auto-generated>
+//------------------------------------------------------------------------------
+
+using System;
+using System.Reflection;
+
+[assembly: System.Reflection.AssemblyCompanyAttribute("RepositoryContracts")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyProductAttribute("RepositoryContracts")]
+[assembly: System.Reflection.AssemblyTitleAttribute("RepositoryContracts")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
+
+// Generated by the MSBuild WriteCodeFragment class.
+
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\RepositoryContracts.AssemblyInfoInputs.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+259307bd4b8e0e02aa66642cd7ea64d5cac1b17ee909fe99d6abcfedfd367bf6
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\RepositoryContracts.assets.cache 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+PKGA   Ÿi•ÝhgVfìÎ_§2ØjHA»k°G±ÕBS'9à                                              C:\Users\bypas\.nuget\packages\    GC:\Program Files %28x86%29\Microsoft Visual Studio\Shared\NuGetPackages                                 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\RepositoryContracts.GeneratedMSBuildEditorConfig.editorconfig 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ForumMini.RepositoryContracts
+build_property.ProjectDir = C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+ 
+ 
+ 
+================================== 
+FILE: C:\Users\bypas\Desktop\DNP_assignment-master\DNP_assignment-master\Server\RepositoryContracts\obj\Debug\net8.0\RepositoryContracts.GlobalUsings.g.cs 
+DATE: 16/09/2025 21:50:47.08 
+================================== 
+ 
+// <auto-generated/>
+global using global::System;
+global using global::System.Collections.Generic;
+global using global::System.IO;
+global using global::System.Linq;
+global using global::System.Net.Http;
+global using global::System.Threading;
+global using global::System.Threading.Tasks;
+ 
+ 
